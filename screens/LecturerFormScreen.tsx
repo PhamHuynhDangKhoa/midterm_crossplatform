@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ContourPattern } from '../components/ContourPattern';
 import { SoftInput } from '../components/SoftInput';
 import { TasteButton } from '../components/TasteButton';
+import { WebImageCropModal } from '../components/WebImageCropModal';
 import { AppStackParamList } from '../navigationTypes';
 import { addLecturerAuto, editLecturer } from '../services/lecturerService';
 import { palette, radius, space, typeScale } from '../theme/tokens';
@@ -47,42 +48,6 @@ function CropCornerGlyph() {
   );
 }
 
-/** Shrinks Web canvas/file data URLs so images stay fast and within Firestore limits. */
-async function compressWebImageDataUrl(uri: string): Promise<string> {
-  if (Platform.OS !== 'web' || typeof document === 'undefined' || !uri.startsWith('data:image')) {
-    return uri;
-  }
-
-  return new Promise((resolve) => {
-    const ImgConstructor = typeof window !== 'undefined' ? window.Image : undefined;
-    if (!ImgConstructor) {
-      resolve(uri);
-      return;
-    }
-
-    const img = new ImgConstructor();
-    img.onload = () => {
-      const maxEdge = 480;
-      const scale = Math.min(1, maxEdge / Math.max(img.width || maxEdge, img.height || maxEdge));
-      const width = Math.max(1, Math.round((img.width || maxEdge) * scale));
-      const height = Math.max(1, Math.round((img.height || maxEdge) * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(uri);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-      const compact = canvas.toDataURL('image/jpeg', 0.72);
-      resolve(compact.length < uri.length ? compact : uri);
-    };
-    img.onerror = () => resolve(uri);
-    img.src = uri;
-  });
-}
-
 export function LecturerFormScreen() {
   const route = useRoute<FormRoute>();
   const navigation = useNavigation<NavProp>();
@@ -102,6 +67,7 @@ export function LecturerFormScreen() {
 
   const [fullnameErr, setFullnameErr] = useState<string | undefined>();
   const [sumClassErr, setSumClassErr] = useState<string | undefined>();
+  const [pendingCropUri, setPendingCropUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
@@ -133,11 +99,14 @@ export function LecturerFormScreen() {
     }
 
     const asset = result.assets[0];
-    let nextUri = asset.uri;
 
     if (Platform.OS === 'web') {
-      nextUri = await compressWebImageDataUrl(asset.uri);
-    } else if (asset.base64) {
+      setPendingCropUri(asset.uri);
+      return;
+    }
+
+    let nextUri = asset.uri;
+    if (asset.base64) {
       const dataUrl = `data:image/jpeg;base64,${asset.base64}`;
       if (dataUrl.length <= MAX_IMAGE_CHARS) {
         nextUri = dataUrl;
@@ -340,6 +309,27 @@ export function LecturerFormScreen() {
           loading={saving}
         />
       </ScrollView>
+
+      <WebImageCropModal
+        visible={Boolean(pendingCropUri)}
+        uri={pendingCropUri}
+        onCancel={() => setPendingCropUri(null)}
+        onError={(message) => {
+          setPendingCropUri(null);
+          showNotice('Image error', message);
+        }}
+        onConfirm={(croppedDataUrl) => {
+          setPendingCropUri(null);
+          if (croppedDataUrl.length > MAX_IMAGE_CHARS) {
+            showNotice(
+              'Image too large',
+              'Choose a lighter image or paste an image URL instead.'
+            );
+            return;
+          }
+          setImageUri(croppedDataUrl);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -3,6 +3,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type LucideIconName =
   | 'x'
   | 'plus'
+  | 'minus'
   | 'search'
   | 'log-out'
   | 'chevron-down'
@@ -45,6 +46,9 @@ export function LucideIcon({
       )}
       {name === 'plus' && (
         <Path d="M5 12h14m-7-7v14" {...strokeProps} />
+      )}
+      {name === 'minus' && (
+        <Path d="M5 12h14" {...strokeProps} />
       )}
       {name === 'search' && (
         <>
