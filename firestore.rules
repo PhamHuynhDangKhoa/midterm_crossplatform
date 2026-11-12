@@ -1,0 +1,143 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Database: QLHocPhan
+// Authentication:
+//   - Firebase Email/Password Auth (request.auth != null).
+//   - This is an admin-panel app where any authenticated admin can manage
+//     the shared GiangVien collection. Unauthenticated callers are denied
+//     all read and write access.
+//
+// Collection: GiangVien
+// Document ID: {lecturerId} (matches IDGV; trimmed non-blank, 1..30 chars, not '.' or '..', no '/')
+// Fields (strictly 4 fields ONLY; no createdAt, updatedAt, or extra fields):
+//   - IDGV: string (required, immutable on update, trimmed non-blank, 1..30 chars,
+//     IDGV == IDGV.trim(), == lecturerId, not '.' or '..', no '/' or line breaks) - lecturer ID
+//   - Fullname: string (required, non-blank, 1..100 chars) - lecturer full name
+//   - Image: string (required, 0..300000 chars) - '', http://..., https://...,
+//     file://..., or data:image/(png|jpeg|jpg|webp|gif|bmp|heic|heif|avif);base64,...
+//   - SumClass: int (required, integer only, >= 0 and <= 1000) - total assigned classes
+// Queries: orderBy('IDGV', 'asc')
+// Renames: Atomic write batch creating the new GiangVien/{newId} doc and deleting GiangVien/{oldId}.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the caller is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Verify all required fields are present in the resulting document data
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // Verify no unexpected or extraneous fields exist in the resulting document data
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    // Verify specified immutable fields are untouched on update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Validate a string's raw length bounds
+    function validStringLength(value, minLen, maxLen) {
+      return value is string &&
+             value.size() >= minLen &&
+             value.size() <= maxLen;
+    }
+
+    // Validate a required non-blank string's length bounds
+    function validNonBlankString(value, minLen, maxLen) {
+      return validStringLength(value, minLen, maxLen) &&
+             value.trim().size() >= 1;
+    }
+
+    // Validate a required trimmed non-blank lecturer ID matching the document ID
+    function isValidLecturerId(lecturerId, value) {
+      return validNonBlankString(value, 1, 30) &&
+             value == value.trim() &&
+             value == lecturerId &&
+             value != '.' &&
+             value != '..' &&
+             value.matches('^[^\\r\\n/]+$');
+    }
+
+    // Validate an integer within [minVal, maxVal]
+    function isValidIntegerRange(value, minVal, maxVal) {
+      return value is int &&
+             value >= minVal &&
+             value <= maxVal;
+    }
+
+    // Validate lecturer image URI: empty string, http(s) URL, file:// URI, or image data URI
+    function isValidImageUri(uri) {
+      return uri is string &&
+             uri.size() <= 300000 &&
+             (uri == '' ||
+              uri.matches('^https://.+') ||
+              uri.matches('^http://.+') ||
+              uri.matches('^file://.+') ||
+              uri.matches('^data:image/(png|jpeg|jpg|webp|gif|bmp|heic|heif|avif);base64,[A-Za-z0-9+/]+={0,2}$'));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidLecturer(lecturerId, data) {
+      let fields = [
+        'IDGV',
+        'Fullname',
+        'Image',
+        'SumClass'
+      ];
+      return hasOnlyAllowedFields(data, fields) &&
+             hasRequiredFields(data, fields) &&
+             isValidLecturerId(lecturerId, data.IDGV) &&
+             validNonBlankString(data.Fullname, 1, 100) &&
+             isValidImageUri(data.Image) &&
+             isValidIntegerRange(data.SumClass, 0, 1000);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /GiangVien/{lecturerId} {
+      // Authenticated admins can get and list (including orderBy('IDGV', 'asc')) lecturers
+      allow read: if isAuthenticated();
+
+      // Authenticated admins can create a valid lecturer document whose IDGV matches lecturerId
+      allow create: if isAuthenticated() &&
+                       isValidLecturer(lecturerId, request.resource.data);
+
+      // Authenticated admins can update a valid lecturer document while keeping IDGV immutable
+      allow update: if isAuthenticated() &&
+                       isValidLecturer(lecturerId, request.resource.data) &&
+                       areImmutableFieldsUnchanged(['IDGV']);
+
+      // Authenticated admins can delete a lecturer document (also used in atomic rename batches)
+      allow delete: if isAuthenticated();
+    }
+
+    // Default deny for all unmatched paths (including legacy users/{userId}/products and subcollections)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

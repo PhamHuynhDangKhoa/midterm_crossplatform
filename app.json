@@ -1,17 +1,18 @@
 {
   "expo": {
-    "name": "MidT",
-    "slug": "MidT",
+    "name": "QLHocPhan",
+    "slug": "qlhocphan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#f8f8f8",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#f8f8f8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +21,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "QLHocPhan needs photo library access to select a lecturer photo."
+        }
+      ],
+      "expo-font",
+      "expo-sharing"
+    ]
   }
 }

@@ -1,0 +1,13 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json",
+    "database": "(default)",
+    "location": "asia-southeast1"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
+  }
+}
