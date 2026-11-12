@@ -112,7 +112,7 @@ export function SignInScreen() {
             <BrandMark />
 
             <View style={styles.headingBlock}>
-              <Text style={typeScale.heroTitle}>Sign in to QLHocPhan</Text>
+              <Text style={typeScale.heroTitle}>Sign in to LecturerHub</Text>
               <Text style={[typeScale.body, styles.subline]}>
                 Manage lecturers, class counts, and course records.
               </Text>

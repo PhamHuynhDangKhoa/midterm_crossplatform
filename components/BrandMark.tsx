@@ -42,7 +42,7 @@ export function BrandMark({
       </View>
       {showWordmark ? (
         <Text style={[styles.wordmark, size === 'sm' && styles.wordmarkSm]}>
-          QLHocPhan
+          LecturerHub
         </Text>
       ) : null}
     </View>

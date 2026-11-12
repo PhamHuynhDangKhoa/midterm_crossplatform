@@ -191,7 +191,7 @@ export function HomeScreen() {
     if (!user?.uid) return;
     confirmAction(
       `Delete ${item.Fullname}?`,
-      `Record ${item.IDGV} will be removed from QLHocPhan.`,
+      `Record ${item.IDGV} will be removed from LecturerHub.`,
       'Delete lecturer',
       async () => {
         setDeletingId(item.IDGV);
@@ -223,7 +223,7 @@ export function HomeScreen() {
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={palette.accent} />
           <Text style={[typeScale.meta, styles.centerNote]}>
-            Loading QLHocPhan...
+            Loading LecturerHub...
           </Text>
         </View>
       </SafeAreaView>

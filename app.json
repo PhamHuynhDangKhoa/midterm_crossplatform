@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "QLHocPhan",
-    "slug": "qlhocphan",
+    "name": "LecturerHub",
+    "slug": "lecturerhub",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,7 +26,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "QLHocPhan needs photo library access to select a lecturer photo."
+          "photosPermission": "LecturerHub needs photo library access to select a lecturer photo."
         }
       ],
       "expo-font",

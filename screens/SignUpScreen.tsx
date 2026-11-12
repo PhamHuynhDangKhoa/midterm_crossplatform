@@ -85,7 +85,7 @@ export function SignUpScreen() {
             <View style={styles.headingBlock}>
               <Text style={typeScale.heroTitle}>Create admin account</Text>
               <Text style={[typeScale.body, styles.subline]}>
-                Register with email to manage QLHocPhan records.
+                Register with email to manage LecturerHub records.
               </Text>
             </View>
 
